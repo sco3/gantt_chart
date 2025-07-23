@@ -1,5 +1,6 @@
+use chart_data::ChartData;
 /// Generate a Gantt chart
-use chrono::{Datelike, Duration, NaiveDate, Weekday};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, Weekday};
 use clap::Parser;
 use core::fmt::Arguments;
 use easy_error::{self, bail, ResultExt};
@@ -15,7 +16,8 @@ use svg::{
     node::{element::path::Data, Node, *},
     Document,
 };
-
+mod chart_data;
+mod item_data;
 mod log_macros;
 
 static GOLDEN_RATIO_CONJUGATE: f32 = 0.618033988749895;
@@ -80,26 +82,6 @@ pub trait GanttChartLog {
 
 pub struct GanttChartTool<'a> {
     log: &'a dyn GanttChartLog,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ItemData {
-    pub title: String,
-    pub duration: Option<i64>,
-    #[serde(rename = "startDate", skip_serializing_if = "Option::is_none")]
-    pub start_date: Option<NaiveDate>,
-    #[serde(rename = "resource")]
-    pub resource_index: Option<usize>,
-    pub open: Option<bool>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct ChartData {
-    pub title: String,
-    #[serde(rename = "markedDate")]
-    pub marked_date: Option<NaiveDate>,
-    pub resources: Vec<String>,
-    pub items: Vec<ItemData>,
 }
 
 #[derive(Debug)]
@@ -246,9 +228,9 @@ impl<'a> GanttChartTool<'a> {
             bail!("You must provide more than one task");
         }
 
-        let mut start_date = NaiveDate::MAX;
-        let mut end_date = NaiveDate::MIN;
-        let mut date = NaiveDate::MIN;
+        let mut start_date = NaiveDateTime::MAX;
+        let mut end_date = NaiveDateTime::MIN;
+        let mut date = NaiveDateTime::MIN;
         let mut shadow_durations: Vec<Option<i64>> = Vec::with_capacity(chart_data.items.len());
 
         // Determine the project start & end dates
